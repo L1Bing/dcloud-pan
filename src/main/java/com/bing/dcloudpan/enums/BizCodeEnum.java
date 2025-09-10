@@ -22,6 +22,7 @@ public enum BizCodeEnum {
     FILE_CHUNK_NOT_ENOUGH( 230409, "分片数量不匹配，合并不够"),
     FILE_STORAGE_NOT_ENOUGH( 240403, "存储空间不足"),
     FILE_TARGET_PARENT_ILLEGAL( 250403, "目标父级目录不合法"),
+    FILE_REMOTE_UPLOAD_FAILED(231040, "远程文件上传失败"),
     SHARE_CANCEL_ILLEGAL( 260403, "取消分享失败,参数不合法"),
     SHARE_CODE_ILLEGAL( 260404, "分享码不合法"),
     SHARE_NOT_EXIST( 260405, "分享不存在"),
