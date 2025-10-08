@@ -33,3 +33,4 @@ minio:
   access-key: minio_root
   access-secret: minio_123456
   bucket-name: ai-pan
+  avatar-bucket-name: avatar

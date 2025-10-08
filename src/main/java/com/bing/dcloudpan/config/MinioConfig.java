@@ -25,6 +25,9 @@ public class MinioConfig {
     @Value("bucket-name")
     private String bucketName;
 
+    @Value("avatar-bucket-name")
+    private String avatarBucketName;
+
     // 预签名url过期时间(ms)
     private Long PRE_SIGN_URL_EXPIRE = 60 * 10 * 1000L;
 
