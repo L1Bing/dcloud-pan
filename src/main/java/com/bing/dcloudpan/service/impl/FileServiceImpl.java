@@ -2,6 +2,7 @@ package com.bing.dcloudpan.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.bing.dcloudpan.dto.AccountFileDTO;
+import com.bing.dcloudpan.dto.FolderTreeNodeDTO;
 import com.bing.dcloudpan.enums.BizCodeEnum;
 import com.bing.dcloudpan.enums.FolderFlagEnum;
 import com.bing.dcloudpan.exception.BizException;
@@ -14,9 +15,13 @@ import com.bing.dcloudpan.util.SpringBeanUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -70,6 +75,36 @@ public class FileServiceImpl implements FileService {
 
         // 4.保存文件
         accountFileMapper.updateById(accountFileDO);
+    }
+
+    @Override
+    public List<FolderTreeNodeDTO> folderTree(Long accountId) {
+        List<AccountFileDO> folerList = accountFileMapper.selectList(new QueryWrapper<AccountFileDO>()
+                .eq("account_id", accountId)
+                .eq("is_dir", FolderFlagEnum.YES.getCode()));
+
+        if (CollectionUtils.isEmpty(folerList)) {
+            return List.of();
+        }
+
+        Map<Long, FolderTreeNodeDTO> folderMap = folerList.stream().collect(Collectors.toMap(AccountFileDO::getId,
+                accountFileDO -> FolderTreeNodeDTO
+                                .builder()
+                                .id(accountFileDO.getId())
+                                .parentId(accountFileDO.getParentId())
+                                .label(accountFileDO.getFileName())
+                                .children(new ArrayList<>())
+                                .build()
+        ));
+
+        for (FolderTreeNodeDTO node : folderMap.values()) {
+            Long parentId = node.getParentId();
+            if (parentId != null && folderMap.containsKey(parentId)) {
+                folderMap.get(parentId).getChildren().add(node);
+            }
+        }
+
+        return folderMap.values().stream().filter(node -> node.getParentId() == 0).collect(Collectors.toList());
     }
 
     private Long saveAccountFile(AccountFileDTO accountFileDTO) {
