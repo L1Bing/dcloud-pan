@@ -2,6 +2,7 @@ package com.bing.dcloudpan.mapper;
 
 import com.bing.dcloudpan.model.FileDO;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import org.apache.ibatis.annotations.Mapper;
 
 /**
  * <p>
@@ -11,6 +12,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
  * @author libing,
  * @since 2025-09-10
  */
+@Mapper
 public interface FileMapper extends BaseMapper<FileDO> {
 
 }

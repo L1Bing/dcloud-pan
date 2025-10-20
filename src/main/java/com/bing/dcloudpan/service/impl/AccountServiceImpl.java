@@ -18,8 +18,8 @@ import com.bing.dcloudpan.model.StorageDO;
 import com.bing.dcloudpan.model.req.AccountLoginReq;
 import com.bing.dcloudpan.model.req.AccountRegisterReq;
 import com.bing.dcloudpan.model.req.FolderCreateReq;
-import com.bing.dcloudpan.service.AccountFileService;
 import com.bing.dcloudpan.service.AccountService;
+import com.bing.dcloudpan.service.FileService;
 import com.bing.dcloudpan.util.CommonUtil;
 import com.bing.dcloudpan.util.SpringBeanUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +41,7 @@ public class AccountServiceImpl implements AccountService {
     @Autowired
     private StorageMapper storageMapper;
     @Autowired
-    private AccountFileService fileService;
+    private FileService fileService;
     @Autowired
     private AccountFileMapper accountFileMapper;
 
