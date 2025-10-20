@@ -28,7 +28,8 @@ public enum BizCodeEnum {
     SHARE_NOT_EXIST( 260405, "分享不存在"),
     SHARE_CANCEL( 260406, "分享已取消"),
     SHARE_EXPIRED( 260407, "分享已过期"),
-    SHARE_FILE_ILLEGAL( 260408, "分享的文件不合规");
+    SHARE_FILE_ILLEGAL( 260408, "分享的文件不合规"),
+    FILE_ROOT_EXIST(260409, "根目录已存在");
 
     @Getter
     private String message;

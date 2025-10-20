@@ -1,6 +1,7 @@
 package com.bing.dcloudpan.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.bing.dcloudpan.config.AccountConfig;
 import com.bing.dcloudpan.dto.AccountFileDTO;
 import com.bing.dcloudpan.dto.FolderTreeNodeDTO;
 import com.bing.dcloudpan.enums.BizCodeEnum;
@@ -121,10 +122,19 @@ public class FileServiceImpl implements FileService {
     }
 
     private void checkParentFile(AccountFileDTO accountFileDTO) {
-        // 1.校验父文件是否存在
+        // 根目录只能有一个
         if (accountFileDTO.getParentId() == 0) {
+            AccountFileDO accountFileDO = accountFileMapper.selectOne(new QueryWrapper<AccountFileDO>()
+                    .eq("account_id", accountFileDTO.getAccountId())
+                    .eq("parent_id", AccountConfig.ROOT_PARENT_ID));
+            if (accountFileDO != null) {
+                throw new BizException(BizCodeEnum.FILE_ROOT_EXIST);
+            }
+
             return;
         }
+
+        // 校验父文件是否存在
         AccountFileDO accountFileDO = accountFileMapper.selectOne(new QueryWrapper<AccountFileDO>()
                 .eq("account_id", accountFileDTO.getAccountId())
                 .eq("id", accountFileDTO.getParentId()));
