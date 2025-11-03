@@ -4,8 +4,7 @@ import com.bing.dcloudpan.dto.AccountDTO;
 import com.bing.dcloudpan.dto.AccountFileDTO;
 import com.bing.dcloudpan.dto.FolderTreeNodeDTO;
 import com.bing.dcloudpan.interceptor.LoginInterceptor;
-import com.bing.dcloudpan.model.req.FileUpdateReq;
-import com.bing.dcloudpan.model.req.FolderCreateReq;
+import com.bing.dcloudpan.model.req.*;
 import com.bing.dcloudpan.service.FileService;
 import com.bing.dcloudpan.util.JsonData;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,5 +42,35 @@ public class FileController {
         Long accountId = LoginInterceptor.threadLocal.get().getId();
         List<FolderTreeNodeDTO> folderTree = fileService.folderTree(accountId);
         return JsonData.buildSuccess(folderTree);
+    }
+
+    /**
+     * 小文件上传
+     */
+    @PostMapping("/upload")
+    public JsonData upload(FileUploadReq req) {
+        req.setAccountId(LoginInterceptor.threadLocal.get().getId());
+        fileService.fileUpload(req);
+        return JsonData.buildSuccess();
+    }
+
+    /**
+     * 文件批量移动
+     */
+    @PostMapping("/moveBatch")
+    public JsonData moveBatch(@RequestBody FileBatchReq req) {
+        req.setAccountId(LoginInterceptor.threadLocal.get().getId());
+        fileService.moveBatch(req);
+        return JsonData.buildSuccess();
+    }
+
+    /**
+     * 文件批量删除
+     */
+    @PostMapping("/del_batch")
+    public JsonData delBatch(@RequestBody FileDelReq req) {
+        req.setAccountId(LoginInterceptor.threadLocal.get().getId());
+        fileService.delBatch(req);
+        return JsonData.buildSuccess();
     }
 }
