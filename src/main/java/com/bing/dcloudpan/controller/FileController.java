@@ -27,6 +27,7 @@ public class FileController {
 
     @RequestMapping("/createFolder")
     public JsonData createFolder(@RequestBody FolderCreateReq req) {
+        req.setAccountId(LoginInterceptor.threadLocal.get().getId());
         Long folderId = fileService.createFolder(req);
         return JsonData.buildSuccess(folderId);
     }
@@ -71,6 +72,16 @@ public class FileController {
     public JsonData delBatch(@RequestBody FileDelReq req) {
         req.setAccountId(LoginInterceptor.threadLocal.get().getId());
         fileService.delBatch(req);
+        return JsonData.buildSuccess();
+    }
+
+    /**
+     * 文件批量复制
+     */
+    @PostMapping("/copy_batch")
+    public JsonData copyBatch(@RequestBody FileBatchReq req) {
+        req.setAccountId(LoginInterceptor.threadLocal.get().getId());
+        fileService.copyBatch(req);
         return JsonData.buildSuccess();
     }
 }

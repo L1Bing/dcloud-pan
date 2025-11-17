@@ -1,5 +1,6 @@
 package com.bing.dcloudpan.service.impl;
 
+import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.bing.dcloudpan.component.StoreEngine;
@@ -202,7 +203,86 @@ public class FileServiceImpl implements FileService {
         accountFileMapper.deleteBatchIds(delFileIds);
     }
 
-    private void checkFileIdLegal(List<Long> fileIds, Long accountId) {
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void copyBatch(FileBatchReq req) {
+        // 1.检查文件ID是否合法
+        List<Long> fileIds = req.getFileIds();
+        Long accountId = req.getAccountId();
+        Long targetParentId = req.getTargetParentId();
+        List<AccountFileDO> accountFileDOList = checkFileIdLegal(fileIds, accountId);
+
+        // 2.检查目标文件夹ID是否合法
+        checkTargetParentIdLegal(req);
+
+        // 3.递归拷贝文件
+        List<AccountFileDO> newAccountFileDOList  = findBatchCopyFileWithRecur(accountFileDOList, targetParentId);
+
+        // 4.检查存储空间是否充足
+        long totalFileSize = newAccountFileDOList.stream().filter(accountFileDO -> Objects.equals(accountFileDO.getIsDir(), FolderFlagEnum.NO.getCode()))
+                .map(AccountFileDO::getFileSize)
+                .mapToLong(Long::longValue)
+                .sum();
+
+        checkAndUpdateCapacity(accountId, totalFileSize);
+
+        // 5.批量保存用户文件关系表
+        accountFileMapper.insertFileBatch(newAccountFileDOList);
+    }
+
+    /**
+     * 查询复制文件列表
+     * @param accountFileDOList
+     * @param targetParentId
+     * @return
+     */
+    private List<AccountFileDO> findBatchCopyFileWithRecur(List<AccountFileDO> accountFileDOList, Long targetParentId) {
+        List<AccountFileDO> newAccountFileDOList = new ArrayList<>();
+        accountFileDOList.forEach(accountFileDO -> doCopyChildRecord(newAccountFileDOList, accountFileDO, targetParentId));
+        return newAccountFileDOList;
+    }
+
+    /**
+     * 递归拷贝文件
+     * @param newAccountFileDOList
+     * @param accountFileDO
+     * @param targetParentId
+     */
+    private void doCopyChildRecord(List<AccountFileDO> newAccountFileDOList, AccountFileDO accountFileDO, Long targetParentId) {
+        Long oldAccountFileId = accountFileDO.getId();
+        Long accountId = accountFileDO.getAccountId();
+
+        // 创建拷贝文件
+        long newAccountFileId = IdUtil.getSnowflakeNextId();
+        accountFileDO.setId(newAccountFileId);
+        accountFileDO.setParentId(targetParentId);
+        accountFileDO.setGmtCreate(null);
+        accountFileDO.setGmtModified(null);
+
+        //处理重复文件名
+        processFileNameDuplicate(accountFileDO);
+
+        // 添加到拷贝文件列表
+        newAccountFileDOList.add(accountFileDO);
+
+        if (Objects.equals(accountFileDO.getIsDir(), FolderFlagEnum.YES.getCode())) {
+            List<AccountFileDO> childAccountFileList = findChildAccountFile(oldAccountFileId, accountId);
+            if (CollectionUtils.isEmpty(childAccountFileList)) {
+                return;
+            }
+
+            // 递归拷贝子文件
+            childAccountFileList.forEach(childAccountFile -> doCopyChildRecord(newAccountFileDOList, childAccountFile, newAccountFileId));
+        }
+    }
+
+    List<AccountFileDO> findChildAccountFile(Long parentId, Long accountId) {
+        return accountFileMapper.selectList(new QueryWrapper<AccountFileDO>()
+                .eq("parent_id", parentId)
+                .eq("account_id", accountId));
+    }
+
+    private List<AccountFileDO> checkFileIdLegal(List<Long> fileIds, Long accountId) {
         // 1.目标文件夹必须存在且是文件夹
         List<AccountFileDO> accountFileDOList = accountFileMapper.selectList(new QueryWrapper<AccountFileDO>()
                 .eq("account_id", accountId)
@@ -212,7 +292,7 @@ public class FileServiceImpl implements FileService {
             throw new BizException(BizCodeEnum.FILE_BATCH_ERROR);
         }
 
-        // 2.移动的文件夹不能是目标文件夹的子文件夹
+        return accountFileDOList;
     }
 
     private void checkTargetParentIdLegal(FileBatchReq req) {
@@ -300,10 +380,10 @@ public class FileServiceImpl implements FileService {
         checkParentFile(accountFileDTO);
 
         // 2.处理重复文件名
-        processFileNameDuplicate(accountFileDTO);
+        AccountFileDO accountFileDO = SpringBeanUtil.copyProperties(accountFileDTO, AccountFileDO.class);
+        processFileNameDuplicate(accountFileDO);
 
         // 3.保存文件
-        AccountFileDO accountFileDO = SpringBeanUtil.copyProperties(accountFileDTO, AccountFileDO.class);
         accountFileMapper.insert(accountFileDO);
         return accountFileDO.getId();
     }
@@ -330,20 +410,20 @@ public class FileServiceImpl implements FileService {
         }
     }
 
-    private void processFileNameDuplicate(AccountFileDTO accountFileDTO) {
+    private void processFileNameDuplicate(AccountFileDO accountFile) {
         // 2.处理重复文件名
         AccountFileDO accountFileDO = accountFileMapper.selectOne(new QueryWrapper<AccountFileDO>()
-                .eq("account_id", accountFileDTO.getAccountId())
-                .eq("parent_id", accountFileDTO.getParentId())
-                .eq("file_name", accountFileDTO.getFileName()));
+                .eq("account_id", accountFile.getAccountId())
+                .eq("parent_id", accountFile.getParentId())
+                .eq("file_name", accountFile.getFileName()));
         if (accountFileDO != null) {
             // 重复文件名处理
             if (Objects.equals(accountFileDO.getIsDir(), FolderFlagEnum.YES.getCode())) {
                 // 重复文件夹
-                accountFileDTO.setFileName(accountFileDTO.getFileName() + "_" + System.currentTimeMillis());
+                accountFile.setFileName(accountFile.getFileName() + "_" + System.currentTimeMillis());
             } else {
                 // 重复文件
-                accountFileDTO.setFileName(accountFileDTO.getFileName().substring(0, accountFileDTO.getFileName().lastIndexOf(".")) + "_" + System.currentTimeMillis() + accountFileDTO.getFileName().substring(accountFileDTO.getFileName().lastIndexOf(".")));
+                accountFile.setFileName(accountFile.getFileName().substring(0, accountFile.getFileName().lastIndexOf(".")) + "_" + System.currentTimeMillis() + accountFile.getFileName().substring(accountFile.getFileName().lastIndexOf(".")));
             }
         }
     }

@@ -32,4 +32,10 @@ public interface FileService {
      * @param req
      */
     void delBatch(FileDelReq req);
+
+    /**
+     * 批量复制文件
+     * @param req
+     */
+    void copyBatch(FileBatchReq req);
 }
