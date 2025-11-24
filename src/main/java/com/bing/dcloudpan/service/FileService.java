@@ -22,6 +22,12 @@ public interface FileService {
     void fileUpload(FileUploadReq req);
 
     /**
+     * 文件秒传
+     * @param req
+     */
+    boolean fastUpload(FileFastUploadReq req);
+
+    /**
      * 批量移动文件
      * @param req
      */

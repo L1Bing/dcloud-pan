@@ -56,6 +56,16 @@ public class FileController {
     }
 
     /**
+     * 文件秒传
+     */
+    @PostMapping("/fast_upload")
+    public JsonData fastUpload(@RequestBody FileFastUploadReq req) {
+        req.setAccountId(LoginInterceptor.threadLocal.get().getId());
+        boolean isExist = fileService.fastUpload(req);
+        return JsonData.buildSuccess(isExist);
+    }
+
+    /**
      * 文件批量移动
      */
     @PostMapping("/moveBatch")

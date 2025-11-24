@@ -148,6 +148,32 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
+    public boolean fastUpload(FileFastUploadReq req) {
+        // 1.检查文件是否存在
+        FileDO fileDO = fileMapper.selectOne(new QueryWrapper<FileDO>().eq("identifier", req.getIdentifier()));
+        if (fileDO == null) {
+            return false;
+        }
+
+        // 2.检查存储空间是否充足
+        checkAndUpdateCapacity(req.getAccountId(), fileDO.getFileSize());
+
+        // 3.保存文件与用户关系表
+        AccountFileDTO accountFileDTO = new AccountFileDTO();
+        accountFileDTO.setAccountId(req.getAccountId());
+        accountFileDTO.setFileId(fileDO.getId());
+        accountFileDTO.setFileName(fileDO.getFileName());
+        accountFileDTO.setParentId(req.getParentId());
+        accountFileDTO.setIsDir(FolderFlagEnum.NO.getCode());
+        accountFileDTO.setFileSize(fileDO.getFileSize());
+        accountFileDTO.setFileSuffix(fileDO.getFileSuffix());
+        accountFileDTO.setDel(false);
+
+        saveAccountFile(accountFileDTO);
+        return true;
+    }
+
+    @Override
     public void moveBatch(FileBatchReq req) {
         // 1.检查被移动的文件ID是否合法
         checkFileIdLegal(req.getFileIds(), req.getAccountId());
